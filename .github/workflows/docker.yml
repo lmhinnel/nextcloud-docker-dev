@@ -14,7 +14,9 @@ on:
 jobs:
   push_to_registry:
     name: Build image
-    runs-on: ubuntu-latest
+    # FIXME: currently there are playwright issues with ubuntu-latest
+    # https://github.com/microsoft/playwright/issues/30368 closed but still an issue
+    runs-on: ubuntu-22.04
     if: github.repository == 'juliusknorr/nextcloud-docker-dev'
     strategy:
       fail-fast: false
@@ -48,6 +50,10 @@ jobs:
         uses: actions/checkout@v4
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
+        # TODO: remove this when https://github.com/actions/runner-images/issues/11471
+        with:
+          platforms: linux/arm64
+          image: tonistiigi/binfmt:qemu-v7.0.0-28
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Cache Docker layers
@@ -80,6 +86,7 @@ jobs:
           file: ${{ steps.dockerfile.outputs.DOCKERFILE }}
           tags: |
             ghcr.io/juliusknorr/nextcloud-dev-${{ matrix.container }}:${{ github.sha }}
+            ghcr.io/juliusknorr/nextcloud-dev-${{ matrix.container }}:latest
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
       - name: Start containers with docker compose
@@ -88,7 +95,7 @@ jobs:
           PHP_VERSION=$(echo ${{ matrix.container }} | sed -e 's/^php//')
           echo "PHP_VERSION=${PHP_VERSION}" >> .env
           # exit if php version is not numeric or below 80
-          if ! [[ $PHP_VERSION =~ ^[0-9]+$ ]] || [[ $PHP_VERSION -lt 80 ]]; then
+          if ! [[ $PHP_VERSION =~ ^[0-9]+$ ]] || [[ $PHP_VERSION -lt 80 ]] || [[ $PHP_VERSION -gt 83 ]]; then
             exit 0
           fi
           docker compose up -d nextcloud
@@ -104,7 +111,7 @@ jobs:
       - uses: actions/setup-node@v4
         if: matrix.container == 'php81' || matrix.container == 'php82' || matrix.container == 'php83'
         with:
-          node-version: 18
+          node-version: latest
       - name: Install dependencies
         if: matrix.container == 'php81' || matrix.container == 'php82' || matrix.container == 'php83'
         working-directory: tests
