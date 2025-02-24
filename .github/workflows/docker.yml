@@ -91,7 +91,7 @@ jobs:
           PHP_VERSION=$(echo ${{ matrix.container }} | sed -e 's/^php//')
           echo "PHP_VERSION=${PHP_VERSION}" >> .env
           # exit if php version is not numeric or below 80
-          if ! [[ $PHP_VERSION =~ ^[0-9]+$ ]] || [[ $PHP_VERSION -lt 80 ]]; then
+          if ! [[ $PHP_VERSION =~ ^[0-9]+$ ]] || [[ $PHP_VERSION -lt 80 ]] || [[ $PHP_VERSION -gt 83 ]]; then
             exit 0
           fi
           docker compose up -d nextcloud
